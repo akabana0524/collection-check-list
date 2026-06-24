@@ -1,0 +1,17 @@
+{
+  "collectionName": "サンプルコレクション",
+  "categories": [
+    { "name": "準備", "target": 2, "color": "#a8d8ea" },
+    { "name": "実装", "target": 2, "color": "#c3aed6" },
+    { "name": "公開", "target": 1, "color": "#f6c6c6" }
+  ],
+  "data": [
+    { "category": "準備", "name": "プロジェクトのセットアップ", "icon": "mdi-rocket-launch" },
+    { "category": "準備", "name": "Vuetify を組み込む", "icon": "mdi-vuetify" },
+    { "category": "実装", "name": "チェックリスト機能を実装する", "icon": "mdi-checkbox-marked-circle-outline" },
+    { "category": "実装", "name": "マスタデータを読み込む" },
+    { "category": "実装", "name": "画像アイコンに対応する", "icon": "/favicon.svg" },
+    { "category": "公開", "name": "ビルドして配信する", "icon": "mdi-cloud-upload" },
+    { "category": "未分類", "name": "カテゴリ未定義のサンプル項目" }
+  ]
+}
