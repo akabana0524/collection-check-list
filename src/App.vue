@@ -198,7 +198,7 @@ async function onFileSelected(e: Event) {
 
     <v-main>
       <v-container class="py-8" style="max-width: 640px">
-        <div class="d-flex align-center ga-3 mb-2">
+        <div class="d-flex align-center ga-3 search-sticky">
           <v-text-field
             v-model="search"
             label="項目を検索"
@@ -359,3 +359,29 @@ async function onFileSelected(e: Event) {
     </v-snackbar>
   </v-app>
 </template>
+
+<style scoped>
+/* 検索フォームをアプリバー直下にスティッキー固定 */
+.search-sticky {
+  position: sticky;
+  top: 64px; /* v-app-bar の高さ */
+  z-index: 5;
+  background: rgb(var(--v-theme-background));
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* カテゴリヘッダーを検索フォームの下にスティッキー固定 */
+:deep(.v-expansion-panel-title) {
+  position: sticky;
+  top: 120px; /* アプリバー + 検索フォームの高さ */
+  z-index: 3;
+}
+
+/* スティッキーがクリップされないように親の overflow を解除 */
+:deep(.v-expansion-panels),
+:deep(.v-expansion-panel),
+:deep(.v-expansion-panel__shadow) {
+  overflow: visible;
+}
+</style>
