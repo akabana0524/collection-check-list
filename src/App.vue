@@ -4,6 +4,9 @@ import { isImageIcon, parseChecklistData, MASTER_TYPE_DEFINITION } from './data'
 import { useChecklist } from './composables/useChecklist'
 import type { CheckItem } from './composables/useChecklist'
 import { useSpeechInput } from './composables/useSpeechInput'
+import { useThemeMode } from './composables/useThemeMode'
+import type { ThemeMode } from './composables/useThemeMode'
+import { usePersistedRef } from './composables/usePersistedRef'
 import { contrastText } from './utils/color'
 import { downloadText } from './utils/download'
 
@@ -20,6 +23,14 @@ const {
   importMaster,
   switchCollection,
 } = useChecklist()
+
+// テーマモード（ライト / ダーク / システム依存）
+const { mode: themeMode } = useThemeMode()
+const themeOptions: { value: ThemeMode; title: string; icon: string }[] = [
+  { value: 'light', title: 'ライト', icon: 'mdi-white-balance-sunny' },
+  { value: 'dark', title: 'ダーク', icon: 'mdi-weather-night' },
+  { value: 'system', title: 'システムに合わせる', icon: 'mdi-theme-light-dark' },
+]
 
 // 成功を示す薄明るいグリーン（アクセントカラー）
 const ACCENT = '#a5d6a7'
@@ -41,8 +52,15 @@ function progressPct(group: { doneCount: number; target?: number }) {
   return Math.min(100, (group.doneCount / group.target) * 100)
 }
 
-// チェック済み項目を表示するか
-const showChecked = ref(true)
+// チェック済み項目を表示するか（localStorage で維持）
+const showChecked = usePersistedRef('collection-check-list:showChecked:v1', true)
+
+// 並び替え: キー（定義順 / 名前順）と方向（昇順 / 降順）（localStorage で維持）
+const sortKey = usePersistedRef<'default' | 'name'>(
+  'collection-check-list:sortKey:v1',
+  'default',
+)
+const sortAsc = usePersistedRef('collection-check-list:sortAsc:v1', true)
 
 // 検索キーワード
 const search = ref('')
@@ -56,18 +74,25 @@ const {
   search.value = text
 })
 
-// 表示対象の項目（検索フィルタ・チェック済み表示トグルを反映）
+// 表示対象の項目（検索フィルタ・チェック済み表示トグル・並び替えを反映）
 // 検索語は空白（半角/全角）区切りで AND 検索
 function visibleItems(items: CheckItem[]) {
   const terms = (search.value ?? '')
     .toLowerCase()
     .split(/[\s　]+/)
     .filter(Boolean)
-  return items.filter((i) => {
+  const filtered = items.filter((i) => {
     if (!showChecked.value && i.done) return false
     const name = i.name.toLowerCase()
     return terms.every((t) => name.includes(t))
   })
+  // 名前順のときだけ並べ替え。定義順は元の順（データ定義順）を維持
+  if (sortKey.value === 'name') {
+    filtered.sort((a, b) => a.name.localeCompare(b.name, 'ja'))
+  }
+  // 降順なら反転（定義順・名前順の両方に適用）
+  if (!sortAsc.value) filtered.reverse()
+  return filtered
 }
 
 // アコーディオンの開閉状態（初期はすべて開く）
@@ -184,6 +209,17 @@ async function onFileSelected(e: Event) {
               title="型定義をダウンロード"
               @click="downloadTypeDefinition"
             />
+            <v-divider class="my-1" />
+            <v-list-subheader>テーマ</v-list-subheader>
+            <v-list-item
+              v-for="opt in themeOptions"
+              :key="opt.value"
+              :prepend-icon="opt.icon"
+              :title="opt.title"
+              :active="themeMode === opt.value"
+              :append-icon="themeMode === opt.value ? 'mdi-check' : undefined"
+              @click="themeMode = opt.value"
+            />
           </v-list>
         </v-menu>
         <input
@@ -216,6 +252,50 @@ async function onFileSelected(e: Event) {
             hide-details
             @click:append-inner="toggleVoice"
           />
+          <v-menu :close-on-content-click="false">
+            <template #activator="{ props }">
+              <v-btn
+                :icon="sortAsc ? 'mdi-sort-ascending' : 'mdi-sort-descending'"
+                variant="text"
+                aria-label="並び替え"
+                class="flex-shrink-0"
+                v-bind="props"
+              />
+            </template>
+            <v-list density="compact">
+              <v-list-subheader>並び順</v-list-subheader>
+              <v-list-item
+                title="定義順"
+                prepend-icon="mdi-format-list-numbered"
+                :active="sortKey === 'default'"
+                :append-icon="sortKey === 'default' ? 'mdi-check' : undefined"
+                @click="sortKey = 'default'"
+              />
+              <v-list-item
+                title="名前順"
+                prepend-icon="mdi-sort-alphabetical-variant"
+                :active="sortKey === 'name'"
+                :append-icon="sortKey === 'name' ? 'mdi-check' : undefined"
+                @click="sortKey = 'name'"
+              />
+              <v-divider class="my-1" />
+              <v-list-subheader>方向</v-list-subheader>
+              <v-list-item
+                title="昇順"
+                prepend-icon="mdi-sort-ascending"
+                :active="sortAsc"
+                :append-icon="sortAsc ? 'mdi-check' : undefined"
+                @click="sortAsc = true"
+              />
+              <v-list-item
+                title="降順"
+                prepend-icon="mdi-sort-descending"
+                :active="!sortAsc"
+                :append-icon="!sortAsc ? 'mdi-check' : undefined"
+                @click="sortAsc = false"
+              />
+            </v-list>
+          </v-menu>
           <div class="d-flex align-center flex-shrink-0">
             <v-icon
               :icon="showChecked ? 'mdi-eye' : 'mdi-eye-off'"
