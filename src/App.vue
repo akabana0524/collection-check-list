@@ -92,6 +92,8 @@ function visibleItems(items: CheckItem[]) {
   }
   // 降順なら反転（定義順・名前順の両方に適用）
   if (!sortAsc.value) filtered.reverse()
+  // チェック済みは常に下へ（安定ソートで上記の並びは維持）
+  filtered.sort((a, b) => Number(a.done) - Number(b.done))
   return filtered
 }
 
@@ -163,7 +165,7 @@ async function onFileSelected(e: Event) {
 
 <template>
   <v-app>
-    <v-app-bar color="primary" :title="collectionName">
+    <v-app-bar color="surface" :title="collectionName">
       <template #append>
         <v-btn
           icon="mdi-undo"
@@ -362,9 +364,11 @@ async function onFileSelected(e: Event) {
             </v-expansion-panel-title>
             <v-expansion-panel-text class="px-0">
               <v-list lines="one">
+                <TransitionGroup name="list" tag="div" class="list-group">
                 <v-list-item
                   v-for="item in visibleItems(group.items)"
                   :key="item.key"
+                  :class="{ 'done-item': item.done }"
                 >
                   <template #prepend>
                     <v-checkbox-btn
@@ -383,11 +387,12 @@ async function onFileSelected(e: Event) {
                     </template>
                   </template>
                   <v-list-item-title
-                    :class="{ 'text-decoration-line-through text-disabled': item.done }"
+                    :class="{ 'text-decoration-line-through': item.done }"
                   >
                     {{ item.name }}
                   </v-list-item-title>
                 </v-list-item>
+                </TransitionGroup>
                 <v-list-item
                   v-if="visibleItems(group.items).length === 0"
                   class="text-caption text-medium-emphasis"
@@ -456,6 +461,30 @@ async function onFileSelected(e: Event) {
   position: sticky;
   top: 120px; /* アプリバー + 検索フォームの高さ */
   z-index: 3;
+}
+
+/* チェック済み項目は少し薄暗くして刺激を減らす */
+.done-item {
+  opacity: 0.55;
+}
+
+/* チェックによる並べ替えのアニメーション */
+.list-group {
+  position: relative;
+}
+.list-move,
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.3s ease;
+}
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+}
+/* 退場要素を浮かせて、残りの要素の移動を滑らかにする */
+.list-leave-active {
+  position: absolute;
+  width: 100%;
 }
 
 /* スティッキーがクリップされないように親の overflow を解除 */
